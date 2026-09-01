@@ -56,14 +56,39 @@ function withSuspense(Component: React.LazyExoticComponent<() => React.ReactElem
   );
 }
 
+import { useUserStore } from '@/stores/user.store';
+import { useProgressStore } from '@/stores/progress.store';
+
+// ============================================================
+// Root Entry: Automatically skips landing page if user already set up device profile
+// ============================================================
+function RootEntry() {
+  const onboarding = useUserStore(s => s.onboarding);
+  const progress = useProgressStore(s => s.progress);
+  const isLoading = useUserStore(s => s.isLoading);
+
+  if (isLoading) return <PageLoader />;
+
+  // Existing user on this device ➔ Go straight to Dashboard
+  if (onboarding?.step === 'complete' || (progress && (progress.lessonsCompleted.length > 0 || progress.streak > 0))) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <LandingPage />
+    </Suspense>
+  );
+}
+
 // ============================================================
 // Router configuration
 // ============================================================
 export const router = createBrowserRouter([
-  // Landing page (standalone, no shell)
+  // Root route: smart redirect for active learners
   {
     path: '/',
-    element: withSuspense(LandingPage),
+    element: <RootEntry />,
   },
 
   // Standalone pages (immersive — no sidebar)
