@@ -127,6 +127,30 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Fullscreen / App View Mode */}
+        <div className="card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="font-bold text-sm text-white">Immersive App Mode (Hide Browser Bars)</div>
+            <div className="text-xs text-muted">Hides Chrome URL bar and tabs for a 100% native full-screen app experience.</div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+                toast.success('Entered immersive full-screen mode');
+              } else {
+                document.exitFullscreen().catch(() => {});
+                toast.info('Exited full-screen mode');
+              }
+            }}
+            className="btn btn-primary btn-sm gap-1.5"
+          >
+            Toggle Fullscreen
+          </button>
+        </div>
+
         {/* Furigana Mode */}
         <div className="card p-6 space-y-4">
           <div className="flex items-center gap-2 font-bold text-base text-white">

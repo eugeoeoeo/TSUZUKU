@@ -1,0 +1,27 @@
+{
+  "short_name": "TSUZUKU",
+  "name": "TSUZUKU — Japanese Learning Platform",
+  "description": "Master Japanese from zero to N1 with FSRS spaced repetition and interactive kanji drawing.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/dashboard",
+  "background_color": "#0C0C0F",
+  "theme_color": "#0C0C0F",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "fullscreen"
+  ],
+  "orientation": "portrait-primary",
+  "categories": [
+    "education",
+    "productivity"
+  ]
+}
