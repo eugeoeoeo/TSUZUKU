@@ -57,13 +57,14 @@ export default function LessonPage() {
       addXP(xpEarned);
       completeLesson(lesson.id);
       updateStreak();
-      addDailyActivity(lesson.estimatedMinutes, xpEarned, lesson.vocabularyIds.length + lesson.grammarIds.length);
+      addDailyActivity(lesson.estimatedMinutes, xpEarned, (lesson.vocabularyIds?.length ?? 0) + (lesson.grammarIds?.length ?? 0) + (lesson.conceptIds?.length ?? 0));
 
       // Create SRS cards for new items
       if (user?.id) {
-        lesson.vocabularyIds.forEach(vid => ensureItemHasCard(user.id, vid, 'vocabulary'));
-        lesson.grammarIds.forEach(gid => ensureItemHasCard(user.id, gid, 'grammar'));
-        lesson.kanjiIds.forEach(kid => ensureItemHasCard(user.id, kid, 'kanji'));
+        (lesson.conceptIds ?? []).forEach(cid => ensureItemHasCard(user.id, cid, 'kana'));
+        (lesson.vocabularyIds ?? []).forEach(vid => ensureItemHasCard(user.id, vid, 'vocabulary'));
+        (lesson.grammarIds ?? []).forEach(gid => ensureItemHasCard(user.id, gid, 'grammar'));
+        (lesson.kanjiIds ?? []).forEach(kid => ensureItemHasCard(user.id, kid, 'kanji'));
       }
 
       navigate('/dashboard');

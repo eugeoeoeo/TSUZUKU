@@ -8,6 +8,7 @@ import { getDueCards } from '@/lib/srs';
 import { n5Vocabulary } from '@/data/n5/vocabulary';
 import { n5Grammar } from '@/data/n5/grammar';
 import { n5Kanji } from '@/data/n5/kanji';
+import { KANA_DATABASE } from '@/data/curriculum/kana';
 import { AudioButton, JLPTBadge, PartOfSpeechBadge } from '@/components/japanese/JapaneseComponents';
 import type { SRSCard, ReviewAttempt } from '@/types/user.types';
 
@@ -71,6 +72,18 @@ export default function ReviewPage() {
   // Resolve card item data
   const itemData = (() => {
     if (!currentCard) return null;
+    if (currentCard.itemType === 'kana') {
+      const kana = KANA_DATABASE[currentCard.itemId] ?? {
+        id: currentCard.itemId,
+        character: currentCard.itemId.replace('kana-', ''),
+        romaji: currentCard.itemId.replace('kana-', ''),
+        type: 'hiragana',
+        exampleWord: '',
+        exampleReading: '',
+        exampleMeaning: 'Kana Sound',
+      };
+      return { type: 'kana', data: kana };
+    }
     if (currentCard.itemType === 'vocabulary') {
       return { type: 'vocabulary', data: n5Vocabulary.find(v => v.id === currentCard.itemId) ?? n5Vocabulary[0] };
     }
@@ -247,6 +260,38 @@ export default function ReviewPage() {
                 {itemData.type}
               </span>
             </div>
+
+            {/* Kana Card */}
+            {itemData.type === 'kana' && (() => {
+              const kana = itemData.data as import('@/data/curriculum/kana').KanaItem;
+              return (
+                <div className="space-y-4">
+                  <div className="font-jp-serif text-jp-hero font-bold" style={{ color: 'var(--color-text-primary)', lineHeight: 1 }}>
+                    {kana.character}
+                  </div>
+
+                  {isRevealed && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-3"
+                    >
+                      <div className="text-3xl font-black font-mono text-[var(--color-vermillion-400)]">
+                        /{kana.romaji}/
+                      </div>
+                      {kana.exampleWord && (
+                        <div className="text-sm text-muted font-jp">
+                          Example: <span className="text-white font-bold">{kana.exampleWord}</span> ({kana.exampleReading}) — {kana.exampleMeaning}
+                        </div>
+                      )}
+                      <div className="flex justify-center pt-2">
+                        <AudioButton text={kana.character} size={24} />
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Vocabulary Card */}
             {itemData.type === 'vocabulary' && (() => {
