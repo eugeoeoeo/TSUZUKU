@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Headphones, Play, ArrowRight, CheckCircle, XCircle, ArrowCounterClockwise, Eye } from '@phosphor-icons/react';
 import { checkAnswer, romajiToHiragana } from '@/utils/answer.utils';
+import { playJapaneseAudio } from '@/utils/audio.utils';
 import { JLPTBadge } from '@/components/japanese/JapaneseComponents';
 
 interface ListeningDrill {
@@ -58,13 +59,7 @@ export default function ListenPage() {
   const drill = LISTENING_DRILLS[activeDrillIndex];
 
   const playAudio = (rate = 1.0) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(drill.japanese);
-      utterance.lang = 'ja-JP';
-      utterance.rate = rate;
-      window.speechSynthesis.speak(utterance);
-    }
+    playJapaneseAudio(drill.japanese, rate);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

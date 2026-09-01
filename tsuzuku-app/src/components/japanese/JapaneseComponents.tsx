@@ -171,10 +171,11 @@ export function PartOfSpeechBadge({ pos }: { pos: string }) {
 }
 
 // ============================================================
-// AudioButton — plays audio or TTS for Japanese text
+// AudioButton — plays audio or robust TTS for Japanese text
 // ============================================================
-import { SpeakerHigh, SpeakerX } from '@phosphor-icons/react';
+import { SpeakerHigh } from '@phosphor-icons/react';
 import { useState } from 'react';
+import { playJapaneseAudio } from '@/utils/audio.utils';
 
 interface AudioButtonProps {
   text: string;
@@ -184,37 +185,35 @@ interface AudioButtonProps {
   className?: string;
 }
 
-export function AudioButton({ text, audioUrl, lang = 'ja-JP', size = 20, className = '' }: AudioButtonProps) {
+export function AudioButton({ text, audioUrl, size = 20, className = '' }: AudioButtonProps) {
   const [playing, setPlaying] = useState(false);
   const soundEnabled = useUserStore(s => s.settings.soundEnabled);
 
-  const play = () => {
-    if (!soundEnabled) return;
-    if (playing) return;
+  const play = async () => {
+    if (!soundEnabled || playing) return;
 
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      setPlaying(true);
-      audio.play();
-      audio.onended = () => setPlaying(false);
-      return;
-    }
-
-    // Web Speech API fallback
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      setPlaying(true);
-      utterance.onend = () => setPlaying(false);
-      utterance.onerror = () => setPlaying(false);
-      window.speechSynthesis.speak(utterance);
+    setPlaying(true);
+    try {
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        await new Promise<void>((resolve) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => resolve();
+          audio.play().catch(() => resolve());
+        });
+      } else {
+        await playJapaneseAudio(text, 0.9);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setPlaying(false);
     }
   };
 
   return (
     <button
+      type="button"
       onClick={play}
       className={`flex items-center justify-center rounded-lg transition-all ${className}`}
       style={{
@@ -226,11 +225,11 @@ export function AudioButton({ text, audioUrl, lang = 'ja-JP', size = 20, classNa
         cursor: soundEnabled ? 'pointer' : 'not-allowed',
         opacity: soundEnabled ? 1 : 0.5,
       }}
-      title={soundEnabled ? 'Play pronunciation' : 'Sound disabled'}
+      title={soundEnabled ? 'Play pronunciation' : 'Sound disabled in settings'}
       disabled={!soundEnabled}
       aria-label="Play pronunciation"
     >
-      {playing ? <SpeakerHigh size={size} weight="fill" /> : <SpeakerHigh size={size} />}
+      <SpeakerHigh size={size} weight={playing ? 'fill' : 'regular'} />
     </button>
   );
 }
