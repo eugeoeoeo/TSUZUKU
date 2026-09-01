@@ -185,8 +185,8 @@ export function Sidebar() {
             <div className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
               {user?.displayName ?? 'Learner'}
             </div>
-            <div className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
-              {user?.isGuest ? 'Guest mode' : user?.email ?? ''}
+            <div className="text-xs truncate text-[var(--color-success)] flex items-center gap-1">
+              <SealCheck size={12} weight="fill" /> Local Storage
             </div>
           </div>
           <ArrowRight
@@ -195,17 +195,6 @@ export function Sidebar() {
             style={{ color: 'var(--color-text-muted)' }}
           />
         </NavLink>
-
-        {/* Supabase upgrade hint for guest users */}
-        {user?.isGuest && (
-          <div
-            className="mt-2 px-3 py-2 rounded-lg text-xs"
-            style={{ background: 'var(--color-base-700)', color: 'var(--color-text-muted)' }}
-          >
-            <SealCheck size={12} className="inline mr-1" style={{ color: 'var(--color-gold-400)' }} />
-            Progress saved locally
-          </div>
-        )}
       </div>
     </aside>
   );

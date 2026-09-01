@@ -73,11 +73,8 @@ export default function LandingPage() {
           <a href="#method" className="hover:text-white transition-colors">Method</a>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/dashboard" className="btn btn-ghost btn-sm hidden md:inline-flex">
-            Log in
-          </Link>
-          <Link to="/onboarding" className="btn btn-primary btn-sm" id="cta-nav">
-            Start Free
+          <Link to="/dashboard" className="btn btn-primary btn-sm" id="cta-nav">
+            Open App <ArrowRight size={16} />
           </Link>
         </div>
       </nav>

@@ -1,7 +1,7 @@
 // ============================================================
-// TSUZUKU — Local Storage Persistence
-// Handles all client-side data persistence
-// Will be replaced by Supabase calls when credentials are added
+// TSUZUKU — Device Storage Persistence
+// 100% Offline-first local storage for user's phone / browser
+// Zero server dependencies, private, instant & durable
 // ============================================================
 
 const PREFIX = 'tsuzuku_';
@@ -34,6 +34,35 @@ export const storage = {
     keys.forEach(k => localStorage.removeItem(k));
   },
 
+  // Export all application data to a JSON blob for easy phone backup
+  exportAll(): string {
+    const dump: Record<string, unknown> = {};
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(PREFIX));
+    keys.forEach(k => {
+      try {
+        const val = localStorage.getItem(k);
+        if (val) dump[k.slice(PREFIX.length)] = JSON.parse(val);
+      } catch {
+        // ignore malformed keys
+      }
+    });
+    return JSON.stringify(dump, null, 2);
+  },
+
+  // Restore application state from a JSON backup string
+  importAll(jsonString: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonString) as Record<string, unknown>;
+      if (typeof parsed !== 'object' || parsed === null) return false;
+      Object.entries(parsed).forEach(([key, val]) => {
+        localStorage.setItem(PREFIX + key, JSON.stringify(val));
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   // List all keys with prefix
   keys(): string[] {
     return Object.keys(localStorage)
@@ -43,7 +72,7 @@ export const storage = {
 };
 
 // ============================================================
-// KEYS
+// STORAGE KEYS
 // ============================================================
 export const STORAGE_KEYS = {
   USER: 'user',
@@ -56,6 +85,6 @@ export const STORAGE_KEYS = {
   DAILY_ACTIVITY: 'daily_activity',
   ACHIEVEMENTS: 'achievements',
   ONBOARDING: 'onboarding',
-  LESSON_PROGRESS: 'lesson_progress', // Map of lessonId -> step index
+  LESSON_PROGRESS: 'lesson_progress',
   STREAK: 'streak',
 } as const;
