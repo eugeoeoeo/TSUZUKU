@@ -8,6 +8,8 @@ import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { createSRSCard, scheduleReview, getDueCards, getMasteryBreakdown } from '@/lib/srs';
 import type { SRSCard, ReviewAttempt, UserProgress, DailyActivity } from '@/types/user.types';
 
+import { logger } from '@/lib/logger';
+
 function getTodayKey(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
@@ -77,12 +79,14 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
     const todayKey = getTodayKey();
     const todayActivity = progress.dailyActivity.find(d => d.date === todayKey) ?? null;
 
+    logger.store('ProgressStore', `Loaded ${srsCards.length} SRS cards, ${progress.lessonsCompleted.length} completed lessons.`);
     set({ progress, srsCards, lessonProgress, todayActivity, isLoaded: true });
   },
 
   addSRSCard: (card) => {
     const cards = [...get().srsCards, card];
     storage.set(STORAGE_KEYS.SRS_CARDS, cards);
+    logger.srs(`Added new card: ${card.itemId} (${card.itemType})`);
     set({ srsCards: cards });
   },
 
@@ -92,17 +96,23 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
     const toAdd = newCards.filter(c => !existingIds.has(c.id));
     const cards = [...existing, ...toAdd];
     storage.set(STORAGE_KEYS.SRS_CARDS, cards);
+    logger.srs(`Batch added ${toAdd.length} cards.`);
     set({ srsCards: cards });
   },
 
   reviewCard: (cardId, confidence) => {
     const { srsCards, progress } = get();
     const cardIndex = srsCards.findIndex(c => c.id === cardId);
-    if (cardIndex === -1 || !progress) return null;
+    if (cardIndex === -1 || !progress) {
+      logger.warn('ProgressStore', `Card ${cardId} not found in store.`);
+      return null;
+    }
 
     const card = srsCards[cardIndex];
     const updatedCard = scheduleReview(card, confidence);
     const isCorrect = confidence >= 3;
+
+    logger.srs(`Reviewed card ${card.itemId}: rating ${confidence} (${isCorrect ? 'Correct' : 'Again'}) ➔ Next review: ${new Date(updatedCard.nextReview).toLocaleDateString()}`);
 
     const attempt: ReviewAttempt = {
       cardId: card.id,

@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { logger } from '@/lib/logger';
 import type { User, UserProfile, UserSettings, OnboardingState } from '@/types/user.types';
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -72,6 +73,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
         createdAt: new Date().toISOString(),
       };
       storage.set(STORAGE_KEYS.USER, user);
+      logger.store('UserStore', 'Created new guest user profile', user);
     }
 
     let profile = storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
@@ -88,6 +90,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
     const onboarding = storage.get<OnboardingState>(STORAGE_KEYS.ONBOARDING);
 
+    logger.store('UserStore', `Initialized user profile (${profile.currentLevel}, ${profile.xp} XP)`);
     set({ user, profile, settings, onboarding, isLoading: false });
   },
 
@@ -96,6 +99,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     if (!profile) return;
     const updated = { ...profile, ...updates, updatedAt: new Date().toISOString() };
     storage.set(STORAGE_KEYS.PROFILE, updated);
+    logger.store('UserStore', 'Updated profile', updates);
     set({ profile: updated });
   },
 
@@ -103,6 +107,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     const { settings } = get();
     const updated = { ...settings, ...updates };
     storage.set(STORAGE_KEYS.SETTINGS, updated);
+    logger.store('UserStore', 'Updated settings', updates);
     set({ settings: updated });
   },
 
@@ -111,11 +116,13 @@ export const useUserStore = create<UserStore>((set, get) => ({
     if (!profile) return;
     const updated = { ...profile, xp: profile.xp + amount, updatedAt: new Date().toISOString() };
     storage.set(STORAGE_KEYS.PROFILE, updated);
+    logger.store('UserStore', `+${amount} XP Awarded ➔ Total: ${updated.xp} XP`);
     set({ profile: updated });
   },
 
   completeOnboarding: (state) => {
     storage.set(STORAGE_KEYS.ONBOARDING, state);
+    logger.store('UserStore', 'Completed onboarding', state);
     const { profile } = get();
     if (profile && state.placementResult) {
       const updated = {

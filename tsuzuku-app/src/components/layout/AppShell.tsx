@@ -5,6 +5,8 @@ import { MobileNav } from './MobileNav';
 import { KanaCanvas } from './KanaCanvas';
 import { ToastContainer } from '@/components/ui/Toast';
 
+import { logger } from '@/lib/logger';
+
 // Pages that use immersive (full screen) mode — no sidebar
 const IMMERSIVE_ROUTES = ['/lesson', '/review', '/placement', '/onboarding'];
 
@@ -17,12 +19,13 @@ export function AppShell() {
   const mainRef = useRef<HTMLDivElement>(null);
   const immersive = isImmersive(location.pathname);
 
-  // Scroll to top on route change
+  // Log route transition & scroll to top
   useEffect(() => {
+    logger.route(location.pathname, { search: location.search, hash: location.hash });
     if (mainRef.current) {
       mainRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search, location.hash]);
 
   if (immersive) {
     return (
