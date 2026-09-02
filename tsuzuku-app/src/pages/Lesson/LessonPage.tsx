@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ArrowRight, ArrowLeft, Trophy, CheckCircle, Sparkle } from '@phosphor-icons/react';
-import { getLessonById, N5_LESSONS } from '@/data/curriculum/lessons';
+import { X, ArrowRight, ArrowLeft, Trophy, CheckCircle, Sparkle, Star } from '@phosphor-icons/react';
+import { getLessonById, getNextLesson } from '@/data/curriculum/lessons';
 import { n5Vocabulary } from '@/data/n5/vocabulary';
 import { n5Grammar } from '@/data/n5/grammar';
 import { n5Kanji } from '@/data/n5/kanji';
@@ -14,30 +14,133 @@ import { MultipleChoiceExercise } from '@/components/exercises/MultipleChoiceExe
 import { JapaneseTypingExercise } from '@/components/exercises/JapaneseTypingExercise';
 import { SentenceBuilderExercise } from '@/components/exercises/SentenceBuilderExercise';
 
+// ── Lesson Complete Modal ─────────────────────────────────
+interface CompletionModalProps {
+  lessonTitle: string;
+  xpEarned: number;
+  nextLesson: ReturnType<typeof getNextLesson>;
+  unitId: string;
+  levelId: string;
+  onNextLesson: () => void;
+  onBackToUnit: () => void;
+}
+
+function CompletionModal({ lessonTitle, xpEarned, nextLesson, onNextLesson, onBackToUnit }: CompletionModalProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 60, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+        className="w-full max-w-sm rounded-2xl p-8 space-y-6 text-center"
+        style={{
+          background: 'var(--color-base-800)',
+          border: '1px solid var(--color-base-500)',
+          boxShadow: 'var(--shadow-lg), 0 0 60px rgba(194, 51, 77, 0.2)',
+        }}
+      >
+        {/* Trophy icon */}
+        <div
+          className="w-20 h-20 rounded-2xl mx-auto flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, var(--color-vermillion-600), var(--color-vermillion-800))',
+            boxShadow: '0 0 40px rgba(194, 51, 77, 0.45)',
+          }}
+        >
+          <Trophy size={42} weight="fill" style={{ color: '#fff' }} />
+        </div>
+
+        {/* Heading */}
+        <div className="space-y-1">
+          <div className="font-jp text-base" style={{ color: 'var(--color-gold-400)' }}>お疲れ様でした！</div>
+          <h2 className="text-2xl font-black" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
+            Lesson Complete!
+          </h2>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{lessonTitle}</div>
+        </div>
+
+        {/* XP badge */}
+        <div
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-lg"
+          style={{
+            background: 'rgba(201, 149, 42, 0.15)',
+            border: '1px solid rgba(201, 149, 42, 0.4)',
+            color: 'var(--color-gold-400)',
+          }}
+        >
+          <Star size={18} weight="fill" />
+          +{xpEarned} XP Earned
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-3">
+          {nextLesson ? (
+            <button
+              onClick={onNextLesson}
+              className="btn btn-primary btn-xl w-full gap-2"
+              id="btn-next-lesson"
+            >
+              Next Lesson
+              <ArrowRight size={20} weight="bold" />
+            </button>
+          ) : (
+            <button
+              onClick={onBackToUnit}
+              className="btn btn-primary btn-xl w-full gap-2"
+              id="btn-unit-complete"
+            >
+              Unit Complete! 🎉
+              <ArrowRight size={20} weight="bold" />
+            </button>
+          )}
+          <button
+            onClick={onBackToUnit}
+            className="btn btn-ghost w-full"
+            id="btn-back-to-unit"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Back to Unit
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
 
   const user = useUserStore(s => s.user);
   const addXP = useUserStore(s => s.addXP);
+  const updateProfile = useUserStore(s => s.updateProfile);
   const completeLesson = useProgressStore(s => s.completeLesson);
   const updateStreak = useProgressStore(s => s.updateStreak);
   const addDailyActivity = useProgressStore(s => s.addDailyActivity);
   const ensureItemHasCard = useProgressStore(s => s.ensureItemHasCard);
 
-  // Find lesson or fallback to first lesson
-  const lesson = (lessonId ? getLessonById(lessonId) : null) ?? N5_LESSONS[0];
-  const steps = lesson.steps;
+  // Find lesson — NO silent fallback to N5_LESSONS[0]
+  const lesson = lessonId ? getLessonById(lessonId) : null;
 
+  // Completion modal state
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [xpEarned] = useState(50);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [canProceed, setCanProceed] = useState(true);
   const [exerciseResult, setExerciseResult] = useState<{ isCorrect: boolean } | null>(null);
 
+  const steps = lesson?.steps ?? [];
   const currentStep = steps[currentStepIndex] ?? steps[0];
-  const progressPct = Math.round(((currentStepIndex + 1) / steps.length) * 100);
-  const isLastStep = currentStepIndex === steps.length - 1;
+  const progressPct = steps.length > 0 ? Math.round(((currentStepIndex + 1) / steps.length) * 100) : 0;
+  const isLastStep = steps.length > 0 && currentStepIndex === steps.length - 1;
 
   useEffect(() => {
+    if (!currentStep) return;
     // When step changes, determine if user can immediately proceed
     if (currentStep.type === 'exercise') {
       setCanProceed(false);
@@ -46,18 +149,27 @@ export default function LessonPage() {
       setCanProceed(true);
       setExerciseResult(null);
     }
-  }, [currentStepIndex, currentStep.type]);
+  }, [currentStepIndex, currentStep?.type]);
 
   const handleNext = () => {
-    if (!canProceed) return;
+    if (!canProceed || !lesson) return;
 
     if (isLastStep) {
       // Award XP, mark lesson completed, update streak
-      const xpEarned = 50;
       addXP(xpEarned);
       completeLesson(lesson.id);
       updateStreak();
-      addDailyActivity(lesson.estimatedMinutes, xpEarned, (lesson.vocabularyIds?.length ?? 0) + (lesson.grammarIds?.length ?? 0) + (lesson.conceptIds?.length ?? 0));
+      addDailyActivity(
+        lesson.estimatedMinutes,
+        xpEarned,
+        (lesson.vocabularyIds?.length ?? 0) + (lesson.grammarIds?.length ?? 0) + (lesson.conceptIds?.length ?? 0)
+      );
+
+      // Update current lesson pointer to the next lesson
+      const next = getNextLesson(lesson.id);
+      if (next) {
+        updateProfile({ currentLessonId: next.id });
+      }
 
       // Create SRS cards for new items
       if (user?.id) {
@@ -67,10 +179,30 @@ export default function LessonPage() {
         (lesson.kanjiIds ?? []).forEach(kid => ensureItemHasCard(user.id, kid, 'kanji'));
       }
 
-      navigate('/dashboard');
+      // Show completion modal — never auto-navigate to dashboard
+      setShowCompletion(true);
     } else {
       setCurrentStepIndex(prev => prev + 1);
     }
+  };
+
+  // Derive unit path for back navigation
+  const levelId = lesson?.unitId ? lesson.unitId.split('-')[0]?.toUpperCase() ?? 'N5' : 'N5';
+  const unitPath = lesson ? `/learn/${levelId.toLowerCase()}/${lesson.unitId}` : '/learn';
+
+  const nextLesson = lesson ? getNextLesson(lesson.id) : null;
+
+  const handleGoNextLesson = () => {
+    if (nextLesson) {
+      setShowCompletion(false);
+      setCurrentStepIndex(0);
+      navigate(`/lesson/${nextLesson.id}`);
+    }
+  };
+
+  const handleBackToUnit = () => {
+    setShowCompletion(false);
+    navigate(unitPath);
   };
 
   const handlePrev = () => {
@@ -87,17 +219,47 @@ export default function LessonPage() {
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && canProceed && currentStep.type !== 'exercise') {
+      if (e.key === 'Enter' && canProceed && currentStep?.type !== 'exercise') {
         e.preventDefault();
         handleNext();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canProceed, currentStep.type, currentStepIndex]);
+  }, [canProceed, currentStep?.type, currentStepIndex, lesson]);
+
+  // If lesson not found, show helpful error
+  if (!lesson || !currentStep) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="text-4xl">🔍</div>
+        <div className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Lesson Not Found</div>
+        <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          Lesson ID: <code className="font-mono">{lessonId ?? '(none)'}</code>
+        </div>
+        <Link to="/learn" className="btn btn-primary">Back to Learn</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: 'var(--color-base-900)' }}>
+
+      {/* ── COMPLETION MODAL ── */}
+      <AnimatePresence>
+        {showCompletion && (
+          <CompletionModal
+            lessonTitle={lesson.title}
+            xpEarned={xpEarned}
+            nextLesson={nextLesson ?? undefined}
+            unitId={lesson.unitId}
+            levelId={levelId}
+            onNextLesson={handleGoNextLesson}
+            onBackToUnit={handleBackToUnit}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── TOP IMMERSIVE BAR ── */}
       <header
         className="sticky top-0 z-30 px-6 py-4 flex items-center justify-between border-b surface-blur"
@@ -106,14 +268,14 @@ export default function LessonPage() {
           borderColor: 'var(--color-base-600)',
         }}
       >
-        <Link
-          to="/learn"
+        <button
+          onClick={handleBackToUnit}
           className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--color-base-700)]"
-          style={{ color: 'var(--color-text-muted)' }}
-          title="Exit lesson"
+          style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+          title="Exit lesson (back to unit)"
         >
           <X size={20} />
-        </Link>
+        </button>
 
         {/* Center progress track */}
         <div className="flex-1 max-w-md mx-6">

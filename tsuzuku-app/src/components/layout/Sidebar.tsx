@@ -87,21 +87,12 @@ export function Sidebar() {
       style={{ background: 'var(--color-base-800)', borderRight: '1px solid var(--color-base-500)' }}
     >
       {/* Logo */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: 'var(--color-base-600)' }}>
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center font-jp-serif font-bold text-lg"
-            style={{ background: 'var(--color-vermillion-500)', color: '#fff' }}
-          >
-            続
-          </div>
-          <div>
-            <div className="font-bold tracking-widest text-sm" style={{ color: 'var(--color-text-primary)', letterSpacing: '0.15em' }}>
-              TSUZUKU
-            </div>
-            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>続く · to continue</div>
-          </div>
-        </div>
+      <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-base-600)' }}>
+        <img
+          src="/tsuzuku_app_logo.png"
+          alt="TSUZUKU"
+          style={{ height: 36, width: 'auto', objectFit: 'contain', maxWidth: 160 }}
+        />
       </div>
 
       {/* Level badge */}
